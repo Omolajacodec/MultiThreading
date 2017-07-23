@@ -5,13 +5,13 @@ import java.util.Queue;
 import java.util.concurrent.Semaphore;
 
 public class DatabaseWriterPref {
-	
+
 	private Queue<Integer> database;
-	
-	private Semaphore readerLock,writerLock,resourceLock,readTryLock;
-	
-	private int writer,reader;
-	
+
+	private Semaphore readerLock, writerLock, resourceLock, readTryLock;
+
+	private int writer, reader;
+
 	public DatabaseWriterPref() {
 		this.database = new LinkedList<>();
 		this.readerLock = new Semaphore(1);
@@ -21,12 +21,12 @@ public class DatabaseWriterPref {
 		this.writer = 0;
 		this.reader = 0;
 	}
-	
-	public void read() throws InterruptedException{
+
+	public void read() throws InterruptedException {
 		readTryLock.acquire();
 		readerLock.acquire();
 		reader++;
-		if(reader == 1) {
+		if (reader == 1) {
 			resourceLock.acquire();
 		}
 		readerLock.release();
@@ -35,30 +35,29 @@ public class DatabaseWriterPref {
 		System.out.println(database.poll());
 		readerLock.acquire();
 		reader--;
-		if(reader == 0) {
+		if (reader == 0) {
 			resourceLock.release();
 		}
 		readerLock.release();
 	}
-	
-	public void write() throws InterruptedException{
+
+	public void write() throws InterruptedException {
 		writerLock.acquire();
 		writer++;
-		readTryLock.acquire();
-		if(writer == 1) {
-			resourceLock.acquire();
+		if (writer == 1) {
+			readTryLock.acquire();
 		}
-		readTryLock.release();
 		writerLock.release();
-		System.out.println("writing to database");
+		resourceLock.acquire();
+		System.out.println("Writing to database");
 		database.add(2);
-		writer--;
+		resourceLock.release();
 		writerLock.acquire();
-		if(writer == 0) {
-			resourceLock.release();
+		writer--;
+		if (writer == 0) {
+			readTryLock.release();
 		}
-		
-		
+		writerLock.release();
 	}
 
 }
